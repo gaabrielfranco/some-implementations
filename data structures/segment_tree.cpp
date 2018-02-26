@@ -2,11 +2,13 @@
 
 using namespace std;
 
-struct segment_tree
+class segment_tree
 {
+  private:
     vector<int> segtree, array;
     int n;
 
+  public:
     //Constructor
     segment_tree(const vector<int> &_array)
     {

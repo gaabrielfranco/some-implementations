@@ -2,11 +2,13 @@
 
 using namespace std;
 
-struct union_find
+class union_find
 {
+  private:
     vector<int> parent, rank, size;
     int n_sets;
 
+  public:
     union_find(int number)
     {
         size.assign(number, 1);
@@ -61,13 +63,18 @@ struct union_find
     {
         return size[find_set(set)];
     }
+
+    int number_sets()
+    {
+        return n_sets;
+    }
 };
 
 int main()
 {
     union_find set_1(10);
 
-    printf("Number of sets = %d\n", set_1.n_sets);
+    printf("Number of disjoint sets = %d\n", set_1.number_sets());
 
     set_1.union_set(0, 1);
     set_1.union_set(0, 2);
@@ -79,7 +86,7 @@ int main()
 
     printf("Size of set 0 = %d\n", set_1.size_of_set(0));
 
-    printf("Number of disjoint sets = %d\n", set_1.n_sets);
+    printf("Number of disjoint sets = %d\n", set_1.number_sets());
 
     return 0;
 }
