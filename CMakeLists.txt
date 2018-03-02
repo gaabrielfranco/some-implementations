@@ -1,0 +1,4 @@
+cmake_minimum_required(VERSION 2.8.9)
+project (data_structures)
+add_executable(union_find data_structures/union_find.cpp)
+add_executable(segment_tree data_structures/segment_tree.cpp)
