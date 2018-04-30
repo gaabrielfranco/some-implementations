@@ -1,75 +1,142 @@
-#include <iostream>
-#include <cstdio>
-#include <vector>
-#include <utility>
 #include <algorithm>
+#include <cstdio>
+#include <exception>
+#include <iostream>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
-template <class T>
+template <class Tx, class Ty>
 class graph
 {
-	private:
-		std::vector<std::vector<std::pair<T, T>>> adjacent_list;
-	public:
-		graph(T V)
-		{
-			adjacent_list.assign(V, std::vector<std::pair<T, T>>());
-		}
+   private:
+    std::vector<std::vector<std::pair<Tx, Ty>>> adjacency_matrix;
+    std::unordered_map<Tx, size_t> key_to_index;
+    std::vector<Tx> index_to_key;
+    std::vector<size_t> empty_positions;
 
-		void insert(T V, T id, T weight)
-		{
-			std::pair<T, T> edge(id, weight);
-			adjacent_list[V].push_back(edge);
-		}
+   public:
+    struct Vertex_Not_Found : std::exception
+    {
+        virtual const char* what() const
+        {
+            return "Vertex not found.";
+        }
+    };
 
-		void remove(T V) 
-		{
+    graph()
+    {
+    }
 
-			for (size_t i = 0; i < adjacent_list[V].size(); i++)
-			{
-				auto node = adjacent_list[V][i].first;
+    void add_node(Tx V)
+    {
+        if (key_to_index.find(V) == key_to_index.end())
+        {
+            if (empty_positions.size())
+            {
+                size_t index = empty_positions.back();
+                empty_positions.pop_back();
 
-				std::cout << node << std::endl;
+                adjacency_matrix[index] = std::vector<std::pair<Tx, Ty>>();
+                key_to_index[V] = index;
+                index_to_key[index] = V;
+            }
+            else
+            {
+                adjacency_matrix.push_back(std::vector<std::pair<Tx, Ty>>());
+                key_to_index[V] = adjacency_matrix.size() - 1;
+                index_to_key.push_back(V);
+            }
+        }
+    }
 
-				auto pend = std::remove_if(adjacent_list[node].begin(), adjacent_list[node].end(),
-					[V](std::pair<T, T> edge) {
-					return edge.first == V;
-				});
+    void add_edge(Tx source, Tx destination, Ty weight)
+    {
+        std::pair<Tx, Ty> edge(destination, weight);
 
-				size_t new_size = pend - adjacent_list[node].begin();
+        if (key_to_index.find(source) == key_to_index.end() ||
+            key_to_index.find(destination) == key_to_index.end())
+        {
+            throw Vertex_Not_Found();
+        }
 
-				adjacent_list[node].resize(new_size);
-			}
+        adjacency_matrix[key_to_index[source]].push_back(edge);
+    }
 
-			adjacent_list[V].clear();
-		}
+    void remove_node(Tx V)
+    {
+        if (key_to_index.find(V) == key_to_index.end())
+        {
+            throw Vertex_Not_Found();
+        }
 
-		void print()
-		{
-			for (auto it = adjacent_list.begin(); it != adjacent_list.end(); ++it)
-			{
-				for (auto it_node = it->begin(); it_node != it->end(); ++it_node)
-				{
-					std::cout << "(" << it - adjacent_list.begin() << ", " << it_node->first << ", " << it_node->second << ")\n";
-				}
-			}
-		}
+        int index = key_to_index[V];
+
+        for (size_t i = 0; i < adjacency_matrix[index].size(); i++)
+        {
+            auto node = adjacency_matrix[index][i].first;
+
+            adjacency_matrix[key_to_index[node]].erase(
+                std::remove_if(
+                    adjacency_matrix[key_to_index[node]].begin(),
+                    adjacency_matrix[key_to_index[node]].end(),
+                    [V](std::pair<Tx, Ty> edge) { return edge.first == V; }),
+                adjacency_matrix[key_to_index[node]].end());
+        }
+
+        adjacency_matrix[index].clear();
+        key_to_index.erase(V);
+        index_to_key[index] = -(1ULL);
+        empty_positions.push_back(index);
+    }
+
+    void to_dot()
+    {
+        std::cout << "digraph {\n";
+
+        for (size_t i = 0; i < adjacency_matrix.size(); i++)
+        {
+            if (index_to_key[i] == -1)
+                continue;
+
+            std::cout << "    " << index_to_key[i] << ";\n";
+
+            for (size_t j = 0; j < adjacency_matrix[i].size(); j++)
+            {
+                std::cout << "    " << index_to_key[i] << " -> "
+                          << adjacency_matrix[i][j].first << " [label=\""
+                          << adjacency_matrix[i][j].second << "\"];\n";
+            }
+        }
+
+        std::cout << "}";
+    }
 };
 
 int main()
 {
-	graph<int> garfo(10);
+    graph<char, float> garfo;
 
-	for (int i = 1; i < 10; i++)
-	{
-		garfo.insert(0, i, i);
-		garfo.insert(i, 0, i);
-	}
+    try
+    {
+        garfo.add_node('a');
+        garfo.add_node('b');
+        garfo.add_node('c');
+        garfo.add_edge('a', 'b', 5.5);
+        garfo.add_edge('a', 'b', 10.5);
+        garfo.add_edge('a', 'b', 15.5);
+        garfo.add_edge('a', 'b', 20.5);
+        garfo.add_edge('a', 'b', 25.5);
+        garfo.add_edge('b', 'a', 2.0);
+        garfo.add_edge('b', 'c', 2.0);
+        garfo.add_node('d');
+    }
+    catch (graph<char, float>::Vertex_Not_Found e)
+    {
+        std::cout << e.what() << std::endl;
+    }
 
-	garfo.print();
+    garfo.to_dot();
 
-	garfo.remove(0);
-	puts("\n========= NEW GRAPH ===========\n");
-	garfo.print();
-
-	return 0;
+    return 0;
 }
